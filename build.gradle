@@ -63,6 +63,16 @@ publishing {
 	publications {
 		mavenJava(MavenPublication) {
 			from components.java
+
+			// 👇 Add this section to ensure all dependency versions are resolved
+			versionMapping {
+				usage('java-api') {
+					fromResolutionResult()
+				}
+				usage('java-runtime') {
+					fromResolutionResult()
+				}
+			}
 		}
 	}
 	repositories {
