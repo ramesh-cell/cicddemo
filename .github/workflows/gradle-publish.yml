@@ -52,3 +52,5 @@ jobs:
           name: jacoco-html-report
           path: build/reports/jacoco/test/html
         # This makes the HTML coverage report downloadable from the Actions tab
+      - name: Publish to GitHub Packages
+        run: ./gradlew publish
