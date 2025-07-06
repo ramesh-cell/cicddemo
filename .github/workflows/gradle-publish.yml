@@ -3,10 +3,13 @@ name: Java Build with Gradle
 
 # Trigger this workflow on every push to any branch
 on:
-  push:
+  #push:
+  pull_request:
+    types: [closed]  # Trigger only when a PR is closed
 
 jobs:
   build:
+    if: github.event.pull_request.merged == true  # Ensure only on merge
     # Run the job on a GitHub-hosted Ubuntu Linux VM
     runs-on: ubuntu-latest
 
@@ -14,6 +17,7 @@ jobs:
     permissions:
       contents: read        # Allows reading the repository content
       packages: write       # Required for publishing to GitHub Packages
+      pull-requests: read
 
     steps:
       # Step 1: Checkout source code from the repository
