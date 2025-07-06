@@ -1,68 +1,78 @@
-# Name shown under GitHub Actions tab
-name: Java Build with Gradle
+# 👇 Workflow name as shown in GitHub Actions UI
+name: Java Build on PR Merge
 
-# Trigger this workflow on every push to any branch
+# 👇 Trigger the workflow only when a Pull Request is merged (closed AND merged = true)
 on:
-  #push:
   pull_request:
-    types: [closed]  # Trigger only when a PR is closed
+    types: [closed]  # Trigger when a PR is closed (merged or not)
 
 jobs:
+  # 👇 Job to build and publish AFTER merge
   build:
-    if: github.event.pull_request.merged == true  # Ensure only on merge
-    # Run the job on a GitHub-hosted Ubuntu Linux VM
+    if: github.event.pull_request.merged == true  # Run only if PR was actually merged
+
+    # GitHub-hosted Linux runner
     runs-on: ubuntu-latest
 
-    # Define minimal required permissions
+    # Minimal permission requirements
     permissions:
-      contents: read        # Allows reading the repository content
-      packages: write       # Required for publishing to GitHub Packages
-      pull-requests: read
+      contents: read        # Read repo contents
+      packages: write       # Required to push to GitHub Packages
+      pull-requests: write  # Needed to modify PRs (labels/comments)
 
     steps:
-      # Step 1: Checkout source code from the repository
+      # ✅ Step 1: Add labels to PR
+      - name: Add Labels
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: |
+            build-check
+            needs-review
+        # Labels are added even after merge for tracking/automation
+
+      # ✅ Step 2: Assign reviewers (useful when PR is reopened too)
+      - name: Assign Reviewers
+        uses: ahmadnassri/action-request-review@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          reviewers: ramesh-cell
+        # Replace with your username or a team slug (e.g., my-org/my-team)
+
+      # ✅ Step 3: Checkout source code
       - name: Checkout code
         uses: actions/checkout@v4
-        # Makes the repo code available to the workflow (Java, Gradle files, etc.)
 
-      # Step 2: Set up Java 21 environment using Eclipse Temurin
+      # ✅ Step 4: Set up JDK 21 using Temurin distribution
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '21'            # Java version required for Spring Boot 3.2+/3.5+
-          distribution: 'temurin'       # Temurin = Eclipse Adoptium build of OpenJDK
-          cache: 'gradle'               # Caches Gradle dependencies across builds
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
 
-      # Step 3: Setup Gradle and enable caching for better performance
+      # ✅ Step 5: Set up Gradle environment
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-        # Automatically uses ./gradlew, caches Gradle User Home, and supports build scans
 
-      # Step 4: Make the Gradle wrapper script executable (necessary for Unix runners)
+      # ✅ Step 6: Make Gradle wrapper executable (for Linux runners)
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      # Step 5: Clean, run unit tests, and generate JaCoCo test coverage report
+      # ✅ Step 7: Build, test, and generate JaCoCo test coverage
       - name: Build and Run Tests with JaCoCo Coverage
         run: ./gradlew clean test jacocoTestReport --no-daemon --stacktrace
-        # clean               → Removes previous build outputs
-        # test                → Executes all unit tests
-        # jacocoTestReport    → Generates HTML/XML code coverage reports
-        # --no-daemon         → Avoid background Gradle daemons (better for CI)
-        # --stacktrace        → Useful if errors occur during build/test
 
-      # Step 6: Upload HTML coverage report as downloadable artifact
+      # ✅ Step 8: Upload the JaCoCo HTML report as an artifact
       - name: Upload Coverage Report (HTML)
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-html-report
           path: build/reports/jacoco/test/html
-        # This will allow you to download/view the coverage report via the Actions tab
 
-      # Step 7: Publish build artifacts to GitHub Packages (Maven repository)
+      # ✅ Step 9: Publish JARs to GitHub Packages (if maven-publish is configured)
       - name: Publish to GitHub Packages
         run: ./gradlew publish
         env:
-          USERNAME: ${{ github.actor }}             # GitHub username for authentication
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}        # Secure token provided automatically by GitHub
-        # Requires: maven-publish plugin + proper publishing {} configuration in build.gradle
+          USERNAME: ${{ github.actor }}             # GitHub username
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}        # GitHub token injected by Actions runtime
