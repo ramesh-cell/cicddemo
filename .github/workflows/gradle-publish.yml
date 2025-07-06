@@ -32,11 +32,11 @@ jobs:
         # Labels are added even after merge for tracking/automation
 
       # ✅ Step 2: Assign reviewers (useful when PR is reopened too)
-      - name: Assign Reviewers
-        uses: ahmadnassri/action-request-review@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          reviewers: ramesh-cell
+#      - name: Assign Reviewers
+#        uses: ahmadnassri/action-request-review@v1
+#        with:
+#          github-token: ${{ secrets.GITHUB_TOKEN }}
+#          reviewers: ramesh-cell
         # Replace with your username or a team slug (e.g., my-org/my-team)
 
       # ✅ Step 3: Checkout source code
