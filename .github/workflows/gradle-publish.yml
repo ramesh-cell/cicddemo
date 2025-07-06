@@ -1,4 +1,4 @@
-# Name of the GitHub Actions workflow (shown in the Actions tab)
+# Name shown under GitHub Actions tab
 name: Java Build with Gradle
 
 # Trigger this workflow on every push to any branch
@@ -7,50 +7,58 @@ on:
 
 jobs:
   build:
-    # Run this job on the latest Ubuntu Linux runner hosted by GitHub
+    # Run the job on a GitHub-hosted Ubuntu Linux VM
     runs-on: ubuntu-latest
 
-    # Define permission scope for this job (read access to repo contents)
+    # Define minimal required permissions
     permissions:
-      contents: read
+      contents: read        # Allows reading the repository content
+      packages: write       # Required for publishing to GitHub Packages
 
     steps:
-      # Step 1: Checkout the latest code from the GitHub repository
-      - uses: actions/checkout@v4
-        # Ensures all code and build scripts are available for the workflow
+      # Step 1: Checkout source code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+        # Makes the repo code available to the workflow (Java, Gradle files, etc.)
 
-      # Step 2: Set up Java 21 using Temurin distribution
+      # Step 2: Set up Java 21 environment using Eclipse Temurin
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '21'            # Specify the Java version
-          distribution: 'temurin'       # Use Temurin (Eclipse Adoptium) JDK
-          cache: 'gradle'               # Enable dependency caching for Gradle
+          java-version: '21'            # Java version required for Spring Boot 3.2+/3.5+
+          distribution: 'temurin'       # Temurin = Eclipse Adoptium build of OpenJDK
+          cache: 'gradle'               # Caches Gradle dependencies across builds
 
-      # Step 3: Setup Gradle wrapper environment (includes caching)
+      # Step 3: Setup Gradle and enable caching for better performance
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-        # This automatically detects and caches Gradle dependencies
-        # It also ensures consistent wrapper usage
+        # Automatically uses ./gradlew, caches Gradle User Home, and supports build scans
 
-      # Step 4: Ensure Gradle wrapper script is executable on Unix-based runners
-      - name: Change wrapper permissions
+      # Step 4: Make the Gradle wrapper script executable (necessary for Unix runners)
+      - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
-        # Especially required on Ubuntu or Mac OS runners
 
-      # Step 5: Compile code and run tests with coverage enabled
+      # Step 5: Clean, run unit tests, and generate JaCoCo test coverage report
       - name: Build and Run Tests with JaCoCo Coverage
         run: ./gradlew clean test jacocoTestReport --no-daemon --stacktrace
-        # - `clean`: Clean previous build output
-        # - `test`: Runs all unit tests
-        # - `jacocoTestReport`: Generates code coverage reports (HTML, XML)
+        # clean               → Removes previous build outputs
+        # test                → Executes all unit tests
+        # jacocoTestReport    → Generates HTML/XML code coverage reports
+        # --no-daemon         → Avoid background Gradle daemons (better for CI)
+        # --stacktrace        → Useful if errors occur during build/test
 
-      # Step 6: Upload JaCoCo HTML coverage report as an artifact
+      # Step 6: Upload HTML coverage report as downloadable artifact
       - name: Upload Coverage Report (HTML)
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-html-report
           path: build/reports/jacoco/test/html
-        # This makes the HTML coverage report downloadable from the Actions tab
+        # This will allow you to download/view the coverage report via the Actions tab
+
+      # Step 7: Publish build artifacts to GitHub Packages (Maven repository)
       - name: Publish to GitHub Packages
         run: ./gradlew publish
+        env:
+          USERNAME: ${{ github.actor }}             # GitHub username for authentication
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}        # Secure token provided automatically by GitHub
+        # Requires: maven-publish plugin + proper publishing {} configuration in build.gradle
