@@ -22,13 +22,13 @@ jobs:
 
     steps:
       # ✅ Step 1: Add labels to PR
-      - name: Add Labels
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          labels: |
-            build-check
-            needs-review
+#      - name: Add Labels
+#        uses: actions-ecosystem/action-add-labels@v1
+#        with:
+#          github_token: ${{ secrets.GITHUB_TOKEN }}
+#          labels: |
+#            build-check
+#            needs-review
         # Labels are added even after merge for tracking/automation
 
       # ✅ Step 2: Assign reviewers (useful when PR is reopened too)
